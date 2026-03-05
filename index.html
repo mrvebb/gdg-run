@@ -41,14 +41,14 @@
       background: #059669;
     }
     #boost {
-      color: #fbbf24;
+      color: #ff6b6b; /* Kalp rengi */
       font-weight: 700;
       visibility: hidden;
     }
     #leaderboard {
       margin-top: 15px;
       background: linear-gradient(135deg, #1e3a8a 0%, #60a5fa 100%);
-      padding: 10px 16px;
+      padding: 10px 166px;
       border-radius: 12px;
       width: 260px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.4);
@@ -209,7 +209,7 @@
   <div class="ui">
     <div>Skor: <span id="score">0</span></div>
     <div>En Yüksek: <span id="highScore">0</span></div>
-    <div id="boost">🔥 Firebase x2!</div>
+    <div id="boost">💖 Kalp x2!</div>
   </div>
 
   <div id="leaderboard">
@@ -243,6 +243,7 @@
     let lastTime = 0;
     let playerName = "Misafir";
     let dinoImage = null; 
+    let powerupImage = null; // Kalp resmi için yeni değişken
     let gameStarted = false;
 
     let selectedDinoSrc = null;
@@ -262,15 +263,32 @@
       playerName = nameInputEl.value.trim() || "Misafir";
 
       dinoImage = new Image();
-      dinoImage.onload = () => {
-        charSelectionEl.style.display = "none";
-        gameStarted = true;
-        resetGame();
+      powerupImage = new Image(); // Kalp resmini de yükle
+
+      let imagesLoaded = 0;
+      const totalImages = 2;
+
+      const onImageLoad = () => {
+        imagesLoaded++;
+        if (imagesLoaded === totalImages) {
+          charSelectionEl.style.display = "none";
+          gameStarted = true;
+          resetGame();
+        }
       };
+
+      dinoImage.onload = onImageLoad;
       dinoImage.onerror = () => {
         alert('Karakter resmi yüklenemedi. Lütfen başka bir karakter seçin.');
       };
       dinoImage.src = selectedDinoSrc;
+
+      powerupImage.onload = onImageLoad;
+      powerupImage.onerror = () => {
+        console.warn('Kalp resmi (kalp.png) yüklenemedi. Power-up düz kare olarak görünecek.');
+        onImageLoad(); // Yine de devam et
+      };
+      powerupImage.src = 'kalp.png'; // Kalp resminin kaynağı
     });
 
     returnToCharSelectBtn.addEventListener("click", () => {
@@ -377,6 +395,7 @@
         x: spawnX,
         y: canvas.height - 120 - Math.random() * 40,
         size: 32,
+        rotation: 0, // Kalbin kendi dönüşü
         spawnedAt: time
       });
       lastPowerupTime = time;
@@ -498,29 +517,40 @@
       for (let i = powerups.length - 1; i >= 0; i--) {
         const p = powerups[i];
         p.x -= gameSpeed;
+        p.rotation += 0.05; // Kalbi döndür
 
-        const centerX = p.x + p.size / 2;
-        const centerY = p.y + p.size / 2;
-        const r = p.size / 2;
+        ctx.save();
+        ctx.translate(p.x + p.size / 2, p.y + p.size / 2);
+        ctx.rotate(p.rotation);
+
+        if (powerupImage && powerupImage.complete) {
+          // Kalp resmini çiz
+          ctx.drawImage(powerupImage, -p.size / 2, -p.size / 2, p.size, p.size);
+        } else {
+          // Resim yoksa eski kare Power-up mantığını kullan (koyulaştırılmış renkler)
+          const centerX = 0;
+          const centerY = 0;
+          const r = p.size / 2;
+          
+          const gradH = ctx.createLinearGradient(centerX - r, centerY, centerX + r, centerY);
+          gradH.addColorStop(0, "#995c00"); 
+          gradH.addColorStop(1, "#0f204f"); 
+          ctx.fillStyle = gradH;
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.globalCompositeOperation = 'lighter';
+          const gradV = ctx.createLinearGradient(centerX, centerY - r, centerX, centerY + r);
+          gradV.addColorStop(0, "#024731"); 
+          gradV.addColorStop(1, "#660000"); 
+          ctx.fillStyle = gradV;
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
         
-        const gradH = ctx.createLinearGradient(centerX - r, centerY, centerX + r, centerY);
-        gradH.addColorStop(0, "#995c00"); 
-        gradH.addColorStop(1, "#0f204f"); 
-        ctx.fillStyle = gradH;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.globalCompositeOperation = 'lighter';
-        const gradV = ctx.createLinearGradient(centerX, centerY - r, centerX, centerY + r);
-        gradV.addColorStop(0, "#024731"); 
-        gradV.addColorStop(1, "#660000"); 
-        ctx.fillStyle = gradV;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.globalCompositeOperation = 'source-over';
+        ctx.restore();
         
         const powerRect = { x: p.x, y: p.y, width: p.size, height: p.size };
         if (rectsCollide(player, powerRect)) {
