@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="tr" style="height: 100%;">
+<head>
+  <meta charset="UTF-8" />
+  <title>GDG Runner</title>
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 50%, #4ecdc4 100%);
+      color: #fff;
+      font-family: system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    #gameCanvas {
+      background: #ffffff;
+      border-bottom: 4px solid #10b981;
+      margin-top: 20px;
+      border-radius: 12px;
+    }
+    .ui {
+      margin-top: 10px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    button {
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: none;
+      background: #10b981;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #059669;
+    }
+    #boost {
+      color: #fbbf24;
+      font-weight: 700;
+      visibility: hidden;
+    }
+    #leaderboard {
+      margin-top: 15px;
+      background: linear-gradient(135deg, #1e3a8a 0%, #60a5fa 100%);
+      padding: 10px 16px;
+      border-radius: 12px;
+      width: 260px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+    #leaderboard h3 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      border-bottom: 1px solid rgba(148,163,184,0.4);
+      padding-bottom: 4px;
+    }
+    #scoreList {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 14px;
+    }
+    #scoreList li {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 0;
+    }
+    #scoreList li span.name {
+      color: #e5e7eb;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #scoreList li span.value {
+      color: #fbbf24;
+      font-weight: 600;
+    }
+    h2 {
+      font-size: 48px;
+      font-weight: 900;
+      color: #ffffff;
+      text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+      margin: 20px 0 10px 0;
+      letter-spacing: 2px;
+    }
+
+    #charSelection, #gameOverScreen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #ffffff;
+      padding: 40px;
+      border-radius: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 1000;
+      color: #1e293b;
+      max-width: 90%;
+    }
+    
+    #gameOverScreen {
+      display: none;
+      text-align: center;
+    }
+
+    #charSelection h3, #gameOverScreen h3 {
+      margin-top: 0;
+      margin-bottom: 25px;
+      font-size: 32px;
+      font-weight: 800;
+      color: #0f172a;
+      text-shadow: none;
+    }
+
+    #gameOverScreen p {
+      font-size: 20px;
+      margin-bottom: 30px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    #charList {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 25px;
+    }
+    #charList img {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      cursor: pointer;
+      border: 3px solid transparent;
+      border-radius: 12px;
+      background: #ffffff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    #charList img:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+    }
+    #charList img.selected {
+      border-color: #10b981;
+      transform: translateY(-5px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+    }
+    #nameInput {
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 2px solid #cbd5e1;
+      margin-bottom: 20px;
+      width: 240px;
+      text-align: center;
+      font-size: 16px;
+      color: #334155;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #nameInput:focus {
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+    .actionBtn {
+      font-size: 18px;
+      padding: 12px 40px;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+      transition: background 0.2s, transform 0.2s;
+    }
+    .actionBtn:hover {
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+  <h2>GDG Runner</h2>
+
+  <div id="charSelection">
+    <h3>Karakter Seçimi</h3>
+    <div id="charList">
+      <img class="dino" src="dinoo.png" data-src="dinoo.png" alt="Dino 1">
+      <img class="dino" src="haki.dino.png" data-src="haki.dino.png" alt="Dino 2">
+      <img class="dino" src="pembe.dino.png" data-src="pembe.dino.png" alt="Dino 3">
+      <img class="dino" src="sarı.dino.png" data-src="sarı.dino.png" alt="Dino 4">
+      <img class="dino" src="mavi.dino.png" data-src="mavi.dino.png" alt="Dino 5">
+      <img class="dino" src="yesil.dino.png" data-src="yesil.dino.png" alt="Dino 6">
+    </div>
+    <input id="nameInput" type="text" placeholder="Adınızı girin" maxlength="20">
+    <button id="startBtn" class="actionBtn">Başla</button>
+  </div>
+
+  <div id="gameOverScreen">
+    <h3>Oyun Bitti!</h3>
+    <p id="gameOverMessage"></p>
+    <button id="returnToCharSelectBtn" class="actionBtn">Yeniden Başlat</button>
+  </div>
+
+  <canvas id="gameCanvas" width="1200" height="250" style="max-width:90%;"></canvas>
+  <div class="ui">
+    <div>Skor: <span id="score">0</span></div>
+    <div>En Yüksek: <span id="highScore">0</span></div>
+    <div id="boost">🔥 Firebase x2!</div>
+  </div>
+
+  <div id="leaderboard">
+    <h3>Skor Tablosu (Top 5)</h3>
+    <ol id="scoreList"></ol>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreEl = document.getElementById("score");
+    const highScoreEl = document.getElementById("highScore");
+    const boostEl = document.getElementById("boost");
+    const scoreListEl = document.getElementById("scoreList");
+
+    const charSelectionEl = document.getElementById("charSelection");
+    const gameOverScreen = document.getElementById("gameOverScreen");
+    const gameOverMessage = document.getElementById("gameOverMessage");
+    const returnToCharSelectBtn = document.getElementById("returnToCharSelectBtn");
+    const charImages = document.querySelectorAll(".dino");
+    const nameInputEl = document.getElementById("nameInput");
+    const startBtn = document.getElementById("startBtn");
+
+    let player, obstacles, powerups;
+    let gravity = 0.5;
+    let gameSpeed = 3;
+    let score = 0;
+    let highScore = 0;
+    let isGameOver = false;
+    let lastPowerupTime = 0;
+    let lastTime = 0;
+    let playerName = "Misafir";
+    let dinoImage = null; 
+    let gameStarted = false;
+
+    let selectedDinoSrc = null;
+    charImages.forEach(img => {
+      img.addEventListener("click", () => {
+        charImages.forEach(i => i.classList.remove("selected"));
+        img.classList.add("selected");
+        selectedDinoSrc = img.src;
+      });
+    });
+
+    startBtn.addEventListener("click", () => {
+      if (!selectedDinoSrc) {
+        alert("Lütfen bir karakter seçin");
+        return;
+      }
+      playerName = nameInputEl.value.trim() || "Misafir";
+
+      dinoImage = new Image();
+      dinoImage.onload = () => {
+        charSelectionEl.style.display = "none";
+        gameStarted = true;
+        resetGame();
+      };
+      dinoImage.onerror = () => {
+        alert('Karakter resmi yüklenemedi. Lütfen başka bir karakter seçin.');
+      };
+      dinoImage.src = selectedDinoSrc;
+    });
+
+    returnToCharSelectBtn.addEventListener("click", () => {
+      gameOverScreen.style.display = "none";
+      charSelectionEl.style.display = "flex";
+    });
+
+    const obstacleImages = {};
+    const obstacleTypes = ["chrme.png", "firebase.png", "flutter.png", "ggl.png"];
+    
+    obstacleTypes.forEach(type => {
+      const img = new Image();
+      img.src = type;
+      obstacleImages[type] = img;
+    });
+
+    let highScores = [];
+
+    function loadHighScores() {
+      try {
+        const data = localStorage.getItem("gdgRunnerScores");
+        if (data) {
+          highScores = JSON.parse(data);
+        } else {
+          highScores = [];
+        }
+      } catch (e) {
+        highScores = [];
+      }
+      renderHighScores();
+    }
+
+    function saveHighScores() {
+      try {
+        localStorage.setItem("gdgRunnerScores", JSON.stringify(highScores));
+      } catch (e) {
+      }
+    }
+
+    function renderHighScores() {
+      scoreListEl.innerHTML = "";
+      if (highScores.length === 0) {
+        const li = document.createElement("li");
+        li.innerHTML = '<span class="name">Henüz skor yok</span><span class="value">-</span>';
+        scoreListEl.appendChild(li);
+        return;
+      }
+
+      highScores.forEach((entry, index) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <span class="name">${index + 1}. ${entry.name}</span>
+          <span class="value">${entry.score}</span>
+        `;
+        scoreListEl.appendChild(li);
+      });
+    }
+
+    function resetGame() {
+      player = {
+        x: 50,
+        y: canvas.height - 70,
+        width: 50,
+        height: 60,
+        dy: 0,
+        dx: 0,
+        jumping: false,
+        rotation: 0
+      };
+      obstacles = [];
+      powerups = [];
+      gameSpeed = 3;
+      score = 0;
+      isGameOver = false;
+      lastPowerupTime = 0;
+      lastTime = performance.now();
+      spawnObstacle();
+      animate(lastTime);
+    }
+
+    function spawnObstacle() {
+      const height = 50;
+      const randomType = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+      obstacles.push({
+        x: canvas.width + 20,
+        y: canvas.height - height - 15,
+        width: 50,
+        height,
+        type: randomType
+      });
+    }
+
+    function spawnPowerup(time) {
+      let spawnX = canvas.width + 50;
+      
+      if (obstacles.length > 0) {
+        let lastObs = obstacles[obstacles.length - 1];
+        if (Math.abs(spawnX - lastObs.x) < 300) {
+          spawnX = lastObs.x + 350; 
+        }
+      }
+
+      powerups.push({
+        x: spawnX,
+        y: canvas.height - 120 - Math.random() * 40,
+        size: 32,
+        spawnedAt: time
+      });
+      lastPowerupTime = time;
+    }
+
+    function jump() {
+      if (!gameStarted || isGameOver) return;
+      if (!player.jumping) {
+        player.dy = -13; 
+        player.jumping = true;
+        player.rotation = -0.3;
+      }
+    }
+
+    function rectsCollide(a, b) {
+      const p = 8; 
+      return (
+        a.x + p < b.x + b.width - p &&
+        a.x + a.width - p > b.x + p &&
+        a.y + p < b.y + b.height - p &&
+        a.y + a.height - p > b.y + p
+      );
+    }
+
+    function handleHighScoreOnGameOver() {
+      if (score <= 0) return;
+
+      const qualifies =
+        highScores.length < 5 ||
+        score > highScores[highScores.length - 1].score;
+
+      if (!qualifies) return;
+
+      highScores.push({ name: playerName, score });
+      highScores.sort((a, b) => b.score - a.score);
+      highScores = highScores.slice(0, 5);
+      saveHighScores();
+      renderHighScores();
+    }
+
+    function animate(timestamp) {
+      if (isGameOver) {
+        handleHighScoreOnGameOver();
+        gameStarted = false;
+        gameOverMessage.textContent = `Tebrikler ${playerName}, skorunuz: ${score}`;
+        gameOverScreen.style.display = "flex";
+        return;
+      }
+
+      const delta = timestamp - lastTime;
+      lastTime = timestamp;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillRect(0, canvas.height - 10, canvas.width, 10);
+
+      player.dy += gravity;
+      player.y += player.dy;
+      
+      player.x += player.dx;
+      if (player.dx > 0) {
+        player.dx -= 0.6; 
+        if (player.dx < 0) player.dx = 0;
+      }
+      
+      if (player.x > canvas.width - player.width) {
+        player.x = canvas.width - player.width;
+      }
+      if (player.x < 0) {
+        player.x = 0;
+      }
+      
+      if (player.dy > 0 && player.rotation < 0) {
+        player.rotation += 0.08;
+      }
+      
+      if (player.y > canvas.height - 70) {
+        player.y = canvas.height - 70;
+        player.dy = 0;
+        player.jumping = false;
+        player.rotation = 0;
+      }
+
+      ctx.save();
+      ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
+      ctx.rotate(player.rotation);
+      
+      if (dinoImage) {
+        ctx.drawImage(dinoImage, -player.width / 2, -player.height / 2, player.width, player.height);
+      } else {
+        ctx.fillStyle = "#22c55e";
+        ctx.fillRect(-player.width / 2, -player.height / 2, player.width, player.height);
+      }
+      
+      ctx.restore();
+
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const ob = obstacles[i];
+        ob.x -= gameSpeed;
+
+        if (obstacleImages[ob.type] && obstacleImages[ob.type].complete) {
+          ctx.drawImage(obstacleImages[ob.type], ob.x, ob.y, ob.width, ob.height);
+        } else {
+          ctx.fillStyle = "#9ca3af";
+          ctx.fillRect(ob.x, ob.y, ob.width, ob.height);
+        }
+
+        if (rectsCollide(player, ob)) {
+          isGameOver = true;
+        }
+
+        if (ob.x + ob.width < 0) {
+          obstacles.splice(i, 1);
+          spawnObstacle();
+        }
+      }
+
+      for (let i = powerups.length - 1; i >= 0; i--) {
+        const p = powerups[i];
+        p.x -= gameSpeed;
+
+        const centerX = p.x + p.size / 2;
+        const centerY = p.y + p.size / 2;
+        const r = p.size / 2;
+        
+        const gradH = ctx.createLinearGradient(centerX - r, centerY, centerX + r, centerY);
+        gradH.addColorStop(0, "#995c00"); 
+        gradH.addColorStop(1, "#0f204f"); 
+        ctx.fillStyle = gradH;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.globalCompositeOperation = 'lighter';
+        const gradV = ctx.createLinearGradient(centerX, centerY - r, centerX, centerY + r);
+        gradV.addColorStop(0, "#024731"); 
+        gradV.addColorStop(1, "#660000"); 
+        ctx.fillStyle = gradV;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.globalCompositeOperation = 'source-over';
+        
+        const powerRect = { x: p.x, y: p.y, width: p.size, height: p.size };
+        if (rectsCollide(player, powerRect)) {
+          score *= 2;
+          scoreEl.textContent = score;
+          
+          boostEl.style.visibility = "visible";
+          setTimeout(() => {
+            boostEl.style.visibility = "hidden";
+          }, 5000);
+          powerups.splice(i, 1);
+          continue;
+        }
+
+        if (p.x + p.size < 0) {
+          powerups.splice(i, 1);
+        }
+      }
+
+      score += 1;
+      scoreEl.textContent = score;
+      highScore = Math.max(highScore, score);
+      highScoreEl.textContent = highScore;
+
+      if (score % 500 === 0) {
+        gameSpeed += 0.5;
+      }
+
+      if (timestamp - lastPowerupTime > 8000) {
+        spawnPowerup(timestamp);
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.code === "ArrowUp") {
+        if (gameStarted) {
+          e.preventDefault();
+          jump();
+        }
+      }
+    });
+
+    window.addEventListener("mousedown", () => {
+      if (gameStarted) {
+        jump();
+      }
+    });
+
+    loadHighScores();
+  </script>
+</body>
+</html>
